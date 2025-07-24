@@ -87,8 +87,8 @@ export class ControlPlayer extends EventEmitter {
         this.allAnimate = allAnimate;
         // Running speed
         this.runVelocity = 20;
-        // Jump height
-        this.jumpHight = 3.3;
+        // Jump height - increased for better obstacle clearing
+        this.jumpHight = 5.0;
         this.gameStart = false;
         this.far = 2.5; // Character height
         this.raycasterDown = new THREE.Raycaster();
@@ -226,33 +226,21 @@ export class ControlPlayer extends EventEmitter {
     }
 
     private canJump(): boolean {
-        const canJump = this.gameStart && 
-                       this.status !== playerStatus.DIE &&
-                       this.downCollide && 
-                       !this.isJumping;
-        
-        console.log('Can jump?', canJump, {
-            gameStart: this.gameStart,
-            status: this.status,
-            downCollide: this.downCollide,
-            isJumping: this.isJumping,
-            positionY: this.model.position.y
-        }); // Debug log
-        
-        return canJump;
+        return this.gameStart && 
+               this.status !== playerStatus.DIE &&
+               this.downCollide && 
+               !this.isJumping;
     }
 
     private jump() {
         if (!this.canJump()) return;
         
-        console.log('Jump initiated!'); // Debug log
-        
         this.key = 'jump';
         this.downCollide = false; // Player leaves ground
         this.isJumping = true;
         
-        // Set strong upward velocity
-        this.fallingSpeed = 8.0; // Simple upward velocity
+        // Set balanced jump velocity - high enough for obstacles, quick enough to land
+        this.fallingSpeed = 12.0; // Balanced jump power
     }
 
     private canSlide(): boolean {
@@ -678,26 +666,14 @@ handleLeftRightMove() {
         }
         // Simple jumping physics
         if (this.isJumping || !this.downCollide) {
-            // Apply gravity - this will always pull the player down
-            this.fallingSpeed -= 20.0 * delta; // Gravity acceleration
+            // Apply strong gravity for realistic jump (not flying)
+            this.fallingSpeed -= 25.0 * delta; // Strong gravity for quick landing
             
             // Update Y position based on falling speed
             this.model.position.y += this.fallingSpeed * delta;
             
-            // Debug logging
-            if (this.isJumping) {
-                console.log('Jumping physics:', {
-                    positionY: this.model.position.y,
-                    fallingSpeed: this.fallingSpeed,
-                    delta: delta,
-                    isJumping: this.isJumping,
-                    downCollide: this.downCollide
-                });
-            }
-            
             // Check if player has hit the ground
             if (this.model.position.y <= 0) {
-                console.log('Player landed!');
                 this.model.position.y = 0; // Keep on ground
                 this.fallingSpeed = 0; // Stop all vertical movement
                 this.downCollide = true; // Player is grounded
