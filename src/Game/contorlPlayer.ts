@@ -58,6 +58,10 @@ export class ControlPlayer extends EventEmitter {
     isAddPlane: boolean = false;
     fallingSpeed: number = 0; // Falling speed
     downCollide: boolean = false; // Whether character is grounded
+    
+    // Educational quiz cooldown (15 seconds)
+    lastQuizTime: number = 0;
+    quizCooldown: number = 15000; // 15 seconds in milliseconds
 
     gameStatus: GAME_STATUS = GAME_STATUS.READY; // Game status
     gameStart: boolean = false;
@@ -306,15 +310,59 @@ export class ControlPlayer extends EventEmitter {
         this.way += 1;
     }
 
-    private restartGame() {
+    public restartGame() {
+        console.log('Control player restart initiated');
+        
+        // Reset game status
         this.gameStatus = GAME_STATUS.READY;
-        this.game.emit('gameStatus', this.gameStatus);
+        this.gameStart = false;
+        
+        // Reset scores and counters
+        this.score = 0;
+        this.coin = 0;
         this.smallMistake = 0;
+        
+        // Reset player state
+        this.status = 'idle';
+        this.isJumping = false;
+        this.downCollide = true;
+        this.fallingSpeed = 0;
+        this.way = 2; // Center lane
+        this.playerRunDistance = 0;
+        
+        // Reset player position
+        if (this.model) {
+            this.model.position.set(0, 0, 0);
+            this.targetPosition = 0;
+            this.lastPosition = 0;
+        }
+        
+        // Reset collision states
+        this.frontCollide = false;
+        this.leftCollide = false;
+        this.rightCollide = false;
+        this.upCollide = false;
+        
+        // Reset movement states
+        this.roll = false;
+        this.runlookback = false;
+        
+        // Reset quiz timer
+        this.lastQuizTime = 0;
+        
+        // Clear scene
         while (this.scene.children.length > 0) {
             this.scene.remove(this.scene.children[0]);
         }
+        
+        // Restart environment and player
         this.environement.startGame();
         this.player.createPlayer(false);
+        
+        // Emit status change
+        this.game.emit('gameStatus', this.gameStatus);
+        
+        console.log('Game restart completed');
     }
 
     private handleSwipe() {
@@ -466,17 +514,35 @@ handleLeftRightMove() {
                 if (r1Name === 'coin') {
                     r1.object.visible = false;
                     this.coin += 1;
+                } else if (r1Name && r1Name.startsWith('educational-')) {
+                    // Handle educational icon collision with cooldown
+                    const currentTime = Date.now();
+                    if (currentTime - this.lastQuizTime >= this.quizCooldown) {
+                        r1.object.visible = false;
+                        const subject = r1Name.split('-')[1] as 'math' | 'geography' | 'science';
+                        this.game.emit('showQuiz', { subject });
+                        this.lastQuizTime = currentTime;
+                    }
                 }
-                const c1 = r1Name && r1Name !== 'coin';
+                const c1 = r1Name && r1Name !== 'coin' && !r1Name.startsWith('educational-');
                 this.raycasterFront.far = 1.5;
                 const r2 = this.raycasterFront.intersectObjects([intersectObstacal, intersectCoin])[0];
                 const r2Name = r2?.object.name;
                 if (r2Name === 'coin') {
                     r2.object.visible = false;
                     this.coin += 1;
+                } else if (r2Name && r2Name.startsWith('educational-')) {
+                    // Handle educational icon collision with cooldown
+                    const currentTime = Date.now();
+                    if (currentTime - this.lastQuizTime >= this.quizCooldown) {
+                        r2.object.visible = false;
+                        const subject = r2Name.split('-')[1] as 'math' | 'geography' | 'science';
+                        this.game.emit('showQuiz', { subject });
+                        this.lastQuizTime = currentTime;
+                    }
                 }
                 // Collision point information
-                const c2 = r2Name && r2Name !== 'coin';
+                const c2 = r2Name && r2Name !== 'coin' && !r2Name.startsWith('educational-');
                 this.frontCollideInfo = r1 || r2;
                 c1 || c2 ? (this.frontCollide = true) : (this.frontCollide = false);
                 break;
@@ -487,8 +553,17 @@ handleLeftRightMove() {
                 if (r1Name === 'coin') {
                     r1.object.visible = false;
                     this.coin += 1;
+                } else if (r1Name && r1Name.startsWith('educational-')) {
+                    // Handle educational icon collision with cooldown
+                    const currentTime = Date.now();
+                    if (currentTime - this.lastQuizTime >= this.quizCooldown) {
+                        r1.object.visible = false;
+                        const subject = r1Name.split('-')[1] as 'math' | 'geography' | 'science';
+                        this.game.emit('showQuiz', { subject });
+                        this.lastQuizTime = currentTime;
+                    }
                 }
-                const c1 = r1Name && r1Name !== 'coin';
+                const c1 = r1Name && r1Name !== 'coin' && !r1Name.startsWith('educational-');
                 c1 ? (this.frontCollide = true) : (this.frontCollide = false);
                 break;
             }
@@ -498,17 +573,35 @@ handleLeftRightMove() {
                 if (r1Name === 'coin') {
                     r1.object.visible = false;
                     this.coin += 1;
+                } else if (r1Name && r1Name.startsWith('educational-')) {
+                    // Handle educational icon collision with cooldown
+                    const currentTime = Date.now();
+                    if (currentTime - this.lastQuizTime >= this.quizCooldown) {
+                        r1.object.visible = false;
+                        const subject = r1Name.split('-')[1] as 'math' | 'geography' | 'science';
+                        this.game.emit('showQuiz', { subject });
+                        this.lastQuizTime = currentTime;
+                    }
                 }
-                const c1 = r1Name && r1Name !== 'coin';
+                const c1 = r1Name && r1Name !== 'coin' && !r1Name.startsWith('educational-');
                 this.raycasterLeft.ray.origin = origin;
                 const r2 = this.raycasterLeft.intersectObjects([intersectObstacal, intersectCoin])[0];
                 const r2Name = r2?.object.name;
                 if (r2Name === 'coin') {
                     r2.object.visible = false;
                     this.coin += 1;
+                } else if (r2Name && r2Name.startsWith('educational-')) {
+                    // Handle educational icon collision with cooldown
+                    const currentTime = Date.now();
+                    if (currentTime - this.lastQuizTime >= this.quizCooldown) {
+                        r2.object.visible = false;
+                        const subject = r2Name.split('-')[1] as 'math' | 'geography' | 'science';
+                        this.game.emit('showQuiz', { subject });
+                        this.lastQuizTime = currentTime;
+                    }
                 }
                 // Collision point information
-                const c2 = r2Name && r2Name !== 'coin';
+                const c2 = r2Name && r2Name !== 'coin' && !r2Name.startsWith('educational-');
                 c1 || c2 ? (this.leftCollide = true) : (this.leftCollide = false);
                 break;
             }
@@ -518,17 +611,35 @@ handleLeftRightMove() {
                 if (r1Name === 'coin') {
                     r1.object.visible = false;
                     this.coin += 1;
+                } else if (r1Name && r1Name.startsWith('educational-')) {
+                    // Handle educational icon collision with cooldown
+                    const currentTime = Date.now();
+                    if (currentTime - this.lastQuizTime >= this.quizCooldown) {
+                        r1.object.visible = false;
+                        const subject = r1Name.split('-')[1] as 'math' | 'geography' | 'science';
+                        this.game.emit('showQuiz', { subject });
+                        this.lastQuizTime = currentTime;
+                    }
                 }
-                const c1 = r1Name && r1Name !== 'coin';
+                const c1 = r1Name && r1Name !== 'coin' && !r1Name.startsWith('educational-');
                 this.raycasterRight.ray.origin = origin;
                 const r2 = this.raycasterRight.intersectObjects([intersectObstacal, intersectCoin])[0];
                 const r2Name = r2?.object.name;
                 if (r2Name === 'coin') {
                     r2.object.visible = false;
                     this.coin += 1;
+                } else if (r2Name && r2Name.startsWith('educational-')) {
+                    // Handle educational icon collision with cooldown
+                    const currentTime = Date.now();
+                    if (currentTime - this.lastQuizTime >= this.quizCooldown) {
+                        r2.object.visible = false;
+                        const subject = r2Name.split('-')[1] as 'math' | 'geography' | 'science';
+                        this.game.emit('showQuiz', { subject });
+                        this.lastQuizTime = currentTime;
+                    }
                 }
                 // Collision point information
-                const c2 = r2Name && r2Name !== 'coin';
+                const c2 = r2Name && r2Name !== 'coin' && !r2Name.startsWith('educational-');
                 c1 || c2 ? (this.rightCollide = true) : (this.rightCollide = false);
                 break;
             }
@@ -605,7 +716,7 @@ handleLeftRightMove() {
             if (locateObstacal < 0.75) {
                 this.status = playerStatus.DIE;
                 this.gameStatus = GAME_STATUS.END;
-                showToast('你死了！请重新开始游戏！');
+                showToast('Game Over! Try again! / Umukino warangiye! Gerageza ukundi!');
                 this.game.emit('gameStatus', this.gameStatus);
             }
             else {
@@ -623,7 +734,7 @@ handleLeftRightMove() {
 
         }
     }
-    // 金币旋转
+    // 金币旋转和教育图标动画
     coinRotate() {
         const ds = this.playerRunDistance;
         // Current floor block location
@@ -631,15 +742,37 @@ handleLeftRightMove() {
         const nowPlane1 = nowPlane + 1;
         const intersectCoin = this.environement.coin?.[nowPlane];
         const intersectCoin1 = this.environement.coin?.[nowPlane1];
+        
         // 使得两个场景的硬币做旋转动画
         intersectCoin && intersectCoin.traverse(mesh => {
             if (mesh.name === 'coin') {
                 mesh.rotation.z += Math.random() * 0.1;
+            } else if (mesh.name && mesh.name.startsWith('educational-')) {
+                // Animate educational icons with pulsing and rotation
+                const time = Date.now() * 0.003;
+                const originalScale = mesh.userData.originalScale;
+                if (originalScale) {
+                    const pulseScale = 1 + Math.sin(time) * 0.2;
+                    mesh.scale.copy(originalScale).multiplyScalar(pulseScale);
+                }
+                mesh.rotation.y += 0.02;
+                mesh.rotation.x = Math.sin(time * 0.7) * 0.1;
             }
         });
+        
         intersectCoin1 && intersectCoin1.traverse(mesh => {
             if (mesh.name === 'coin') {
                 mesh.rotation.z += Math.random() * 0.1;
+            } else if (mesh.name && mesh.name.startsWith('educational-')) {
+                // Animate educational icons with pulsing and rotation
+                const time = Date.now() * 0.003;
+                const originalScale = mesh.userData.originalScale;
+                if (originalScale) {
+                    const pulseScale = 1 + Math.sin(time) * 0.2;
+                    mesh.scale.copy(originalScale).multiplyScalar(pulseScale);
+                }
+                mesh.rotation.y += 0.02;
+                mesh.rotation.x = Math.sin(time * 0.7) * 0.1;
             }
         });
     }

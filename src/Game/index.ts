@@ -78,6 +78,13 @@ export default class Game extends EventEmitter {
             this.pause();
         }
     }
+
+    restart() {
+        console.log('Game restart initiated');
+        if (this.player) {
+            this.player.restartGame();
+        }
+    }
     resource() {
         THREE.DefaultLoadingManager.onLoad = () => {
             this.emit('progress', {type: 'successLoad'});

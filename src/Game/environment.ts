@@ -21,6 +21,7 @@ export default class Environment {
     plane: THREE.Object3D[] = [];
     obstacal: THREE.Object3D[] = [];
     coin: THREE.Object3D[] = [];
+    educationalIcons: THREE.Object3D[] = [];
     z!: number;
     house1Scene: any;
     house2Scene: any;
@@ -44,6 +45,7 @@ export default class Environment {
         this.obstacal = [];
         this.z = -1 * (roadLength / 2) + 10;
         this.coin = [];
+        this.educationalIcons = [];
         this.setAmbientLight();
         this.setGroupScene(this.z, -5, true);
     }
@@ -208,9 +210,20 @@ export default class Environment {
             obstacalGroup.add(plane);
             obstacleBlock -= (blockZ + 25);
         }
-        let coinBlock = houseZ - 5;
+        // Generate coins and educational icons
+        await this.generateCollectibles(sceneGroup, houseZ, coin);
+        this.obstacal.push(obstacalGroup);
+        this.coin.push(sceneGroup);
+        modelGroup.add(obstacalGroup, sceneGroup);
+    }
+
+    async generateCollectibles(sceneGroup: THREE.Group, houseZ: number, coin: any) {
+        const threeRoad = [-roadWidth / 3, 0, roadWidth / 3];
+        let collectibleBlock = houseZ - 5;
         let z = -1;
         let increase2 = true;
+        
+        // Setup regular coin
         coin.scale.set(10, 10, 10);
         coin.traverse((child: any) => {
             if (child.isMesh) {
@@ -222,7 +235,17 @@ export default class Environment {
             }
         });
         this.setThingName(coin, 'coin');
-        while (coinBlock > houseZ - roadLength) {
+
+        // Create educational icons
+        const educationalIcons = this.createEducationalIcons();
+        
+        // Track distance for educational icon spacing (every ~15 seconds)
+        // At 20 units/second running speed, 15 seconds = 300 units
+        const educationalSpacing = 300;
+        let lastEducationalPosition = houseZ;
+        let itemCount = 0;
+
+        while (collectibleBlock > houseZ - roadLength) {
             if (z >= -1 && z < 2 && increase2) {
                 z++;
             }
@@ -236,14 +259,84 @@ export default class Environment {
                     increase2 = true;
                 }
             }
-            this.cloneModel(coin, threeRoad[z], 1.5, coinBlock, Math.PI, sceneGroup);
-            const randomInt = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
 
-            coinBlock -= randomInt;
+            // Check if it's time for an educational icon (every 15 seconds of gameplay)
+            const distanceFromLast = lastEducationalPosition - collectibleBlock;
+            const shouldPlaceEducational = distanceFromLast >= educationalSpacing;
+            
+            if (shouldPlaceEducational) {
+                // Place educational icon
+                const subjects = ['math', 'geography', 'science'];
+                const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];
+                const educationalIcon = educationalIcons[randomSubject].clone();
+                
+                // Position the educational icon
+                educationalIcon.position.set(threeRoad[z], 1.5, collectibleBlock);
+                educationalIcon.rotation.y = Math.PI;
+                
+                // Add pulsing animation data
+                educationalIcon.userData = { 
+                    type: 'educational-icon', 
+                    subject: randomSubject,
+                    originalScale: educationalIcon.scale.clone()
+                };
+                
+                // Add to educational icons array for tracking
+                this.educationalIcons.push(educationalIcon);
+                sceneGroup.add(educationalIcon);
+                
+                // Update last educational position
+                lastEducationalPosition = collectibleBlock;
+            } else {
+                // Place regular coin (only every 3rd position to avoid too many coins)
+                if (itemCount % 3 === 0) {
+                    this.cloneModel(coin, threeRoad[z], 1.5, collectibleBlock, Math.PI, sceneGroup);
+                }
+            }
+
+            itemCount++;
+            const randomInt = Math.floor(Math.random() * (4 - 2 + 1)) + 2;
+            collectibleBlock -= randomInt;
         }
-        this.obstacal.push(obstacalGroup);
-        this.coin.push(sceneGroup);
-        modelGroup.add(obstacalGroup, sceneGroup);
+    }
+
+    createEducationalIcons() {
+        const icons: any = {};
+        
+        // Math icon (blue cube)
+        const mathGeometry = new THREE.BoxGeometry(2, 2, 2);
+        const mathMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x3498db,
+            emissive: 0x1a5490,
+            shininess: 100
+        });
+        const mathIcon = new THREE.Mesh(mathGeometry, mathMaterial);
+        mathIcon.name = 'educational-math';
+        icons.math = mathIcon;
+
+        // Geography icon (green sphere)
+        const geoGeometry = new THREE.SphereGeometry(1.2, 16, 16);
+        const geoMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x27ae60,
+            emissive: 0x145a32,
+            shininess: 100
+        });
+        const geoIcon = new THREE.Mesh(geoGeometry, geoMaterial);
+        geoIcon.name = 'educational-geography';
+        icons.geography = geoIcon;
+
+        // Science icon (purple octahedron)
+        const sciGeometry = new THREE.OctahedronGeometry(1.5);
+        const sciMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x9b59b6,
+            emissive: 0x5d2c6b,
+            shininess: 100
+        });
+        const sciIcon = new THREE.Mesh(sciGeometry, sciMaterial);
+        sciIcon.name = 'educational-science';
+        icons.science = sciIcon;
+
+        return icons;
     }
     async loadmodelAndSize(modelGroup: THREE.Group, houseZ: number, load: boolean) {
         if (load) {

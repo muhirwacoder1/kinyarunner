@@ -36,12 +36,31 @@
         </div>
       </div>
     </div>
-    <GameGuide :show-mask="isReady && showGuide" :game-status="gameStatus" />
+    <GameGuide 
+      :show-mask="isReady && showGuide" 
+      :game-status="gameStatus"
+      @start-game="handleStartGame"
+    />
     <ScorePanel 
       :score="score" 
       :coin="coin" 
       :is-paused="isPaused"
       @toggle-pause="handleTogglePause"
+    />
+    <GameOverCard
+      :show-game-over="gameStatus === 'end'"
+      :final-score="score"
+      :total-coins="coin"
+      :high-score="highScore"
+      @replay="handleReplay"
+      @home="handleHome"
+    />
+    <QuizModal
+      :show-quiz="showQuiz"
+      :subject="currentQuizSubject"
+      :game-score="score"
+      @quiz-completed="handleQuizCompleted"
+      @continue-game="handleContinueGame"
     />
     <div class="experience">
       <canvas ref="exp_canvas" class="experience__canvas"></canvas>
@@ -53,7 +72,11 @@
 import { onMounted, ref, computed, onUnmounted } from 'vue';
 import ScorePanel from './components/ScorePanel.vue';
 import GameGuide from './components/GameGuide.vue';
+import GameOverCard from './components/GameOverCard.vue';
+import QuizModal from './components/QuizModal.vue';
+import { useEducationalStore } from './stores/educationalStore';
 import Game from './Game';
+import type { Subject } from './types/educational';
 // Whether the model is loaded
 const isReady = ref(false);
 // Game score
@@ -64,6 +87,14 @@ const coin = ref(0);
 const gameStatus = ref('ready');
 // Game pause state
 const isPaused = ref(false);
+// High score tracking
+const highScore = ref(0);
+// Educational quiz state
+const showQuiz = ref(false);
+const currentQuizSubject = ref<Subject>('math');
+
+// Initialize educational store
+const educationalStore = useEducationalStore();
 
 let loadingData: any = ref({});
 const exp_canvas = ref<HTMLElement>();
@@ -100,10 +131,142 @@ const handleTogglePause = () => {
   }
 };
 
-onMounted(() => {
-  const game = new Game(exp_canvas.value);
-  gameInstance = game;
+const handleStartGame = () => {
+  console.log('Starting game from guide...');
+  gameStatus.value = 'start';
   
+  // Trigger game start if game instance exists
+  if (gameInstance && gameInstance.player) {
+    try {
+      // Start the game through the control player
+      gameInstance.player.gameStart = true;
+      gameInstance.player.gameStatus = 'start';
+      gameInstance.player.game.emit('gameStatus', 'start');
+    } catch (error) {
+      console.error('Error starting game:', error);
+    }
+  }
+};
+
+const handleShowQuiz = (data: { subject: Subject }) => {
+  console.log('Showing quiz for subject:', data.subject);
+  currentQuizSubject.value = data.subject;
+  showQuiz.value = true;
+  
+  // Pause the game
+  if (gameInstance) {
+    gameInstance.pause();
+  }
+};
+
+const handleQuizCompleted = (result: any) => {
+  console.log('Quiz completed:', result);
+  // Update score with educational bonus
+  score.value += result.pointsEarned;
+};
+
+const handleContinueGame = () => {
+  console.log('Continuing game after quiz...');
+  showQuiz.value = false;
+  
+  // Resume the game
+  if (gameInstance) {
+    gameInstance.resume();
+  }
+};
+
+const handleReplay = () => {
+  console.log('Restarting game...');
+  
+  // Reset UI state
+  score.value = 0;
+  coin.value = 0;
+  isPaused.value = false;
+  
+  // Use the game's built-in restart functionality
+  if (gameInstance) {
+    try {
+      gameInstance.restart();
+      console.log('Game restarted successfully');
+    } catch (error) {
+      console.error('Error using built-in restart:', error);
+      // Fallback to full restart
+      handleFullRestart();
+    }
+  } else {
+    // If no game instance, do full restart
+    handleFullRestart();
+  }
+};
+
+const handleFullRestart = async () => {
+  console.log('Performing full restart...');
+  
+  // Reset all game state
+  score.value = 0;
+  coin.value = 0;
+  gameStatus.value = 'ready';
+  isPaused.value = false;
+  
+  // Dispose current game
+  if (gameInstance) {
+    try {
+      gameInstance.disposeGame();
+      gameInstance = null;
+    } catch (error) {
+      console.log('Error disposing game:', error);
+    }
+  }
+  
+  // Wait for cleanup
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  // Create new game instance
+  try {
+    const game = new Game(exp_canvas.value);
+    gameInstance = game;
+    setupGameEvents(game);
+    console.log('Full restart completed');
+  } catch (error) {
+    console.error('Error in full restart:', error);
+    window.location.reload();
+  }
+};
+
+const handleHome = async () => {
+  console.log('Going to home...');
+  
+  // Reset to initial state
+  score.value = 0;
+  coin.value = 0;
+  gameStatus.value = 'ready';
+  isPaused.value = false;
+  
+  // Properly dispose of current game
+  if (gameInstance) {
+    try {
+      gameInstance.disposeGame();
+      gameInstance = null;
+    } catch (error) {
+      console.log('Error disposing game:', error);
+    }
+  }
+  
+  // Wait a bit for cleanup
+  await new Promise(resolve => setTimeout(resolve, 200));
+  
+  // Reinitialize fresh game for home state
+  try {
+    const game = new Game(exp_canvas.value);
+    gameInstance = game;
+    setupGameEvents(game);
+    console.log('Returned to home successfully');
+  } catch (error) {
+    console.error('Error returning to home:', error);
+  }
+};
+
+const setupGameEvents = (game: any) => {
   // Resource loading
   game.on('progress', (data: any) => {
     const { type } = data;
@@ -117,8 +280,14 @@ onMounted(() => {
   });
   
   game.on('gameStatus', (data: any) => {
-    console.log(data);
+    console.log('Game status:', data);
     gameStatus.value = data;
+    
+    // Update high score when game ends
+    if (data === 'end' && score.value > highScore.value) {
+      highScore.value = score.value;
+      localStorage.setItem('kinyarunner-highscore', highScore.value.toString());
+    }
   });
   
   game.on('gameData', (data: any) => {
@@ -129,6 +298,25 @@ onMounted(() => {
   game.on('gamePaused', (paused: boolean) => {
     isPaused.value = paused;
   });
+  
+  game.on('showQuiz', (data: { subject: Subject }) => {
+    handleShowQuiz(data);
+  });
+};
+
+onMounted(() => {
+  // Load high score from localStorage
+  const savedHighScore = localStorage.getItem('kinyarunner-highscore');
+  if (savedHighScore) {
+    highScore.value = parseInt(savedHighScore);
+  }
+  
+  // Initialize educational store
+  educationalStore.loadStats();
+  
+  const game = new Game(exp_canvas.value);
+  gameInstance = game;
+  setupGameEvents(game);
 });
 onUnmounted(() => {
   if (gameInstance) {
