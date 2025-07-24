@@ -12,20 +12,16 @@
         />
         <div class="loading-overlay">
           <div class="loading-content">
-            <h1 class="game-title">SUBWAY SURFERS</h1>
+            <h1 class="game-title">KinyaRunner</h1>
             <h2 class="game-subtitle">Umukino wo Kwiruka</h2>
             
-            <!-- Subtle loading indicator -->
-            <div class="loading-progress">
-              <div class="progress-bar">
-                <div 
-                  class="progress-fill" 
-                  :style="{ width: progressPercentage + '%' }"
-                ></div>
-              </div>
+            <!-- Custom Loading Animation -->
+            <div class="loading-animation-container">
+              <div class="loader"></div>
               <div class="loading-text">
-                <div>{{ progressPercentage }}% loaded</div>
-                <div class="kinyarwanda">{{ progressPercentage }}% byapakuwe</div>
+                <div class="loading-percentage">{{ progressPercentage }}%</div>
+                <div class="loading-status">Loading Game...</div>
+                <div class="kinyarwanda">Gupakira Umukino...</div>
               </div>
             </div>
             
@@ -189,9 +185,9 @@ onUnmounted(() => {
   height: 100%;
   background: linear-gradient(
     135deg,
-    rgba(0, 0, 0, 0.7) 0%,
-    rgba(0, 0, 0, 0.4) 50%,
-    rgba(0, 0, 0, 0.7) 100%
+    rgba(0, 0, 0, 0.3) 0%,
+    rgba(0, 0, 0, 0.1) 50%,
+    rgba(0, 0, 0, 0.3) 100%
   );
   display: flex;
   justify-content: center;
@@ -202,46 +198,75 @@ onUnmounted(() => {
   text-align: center;
   color: white;
   max-width: 600px;
-  padding: 20px;
+  padding: 40px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .game-title {
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 3.5rem;
-  font-weight: bold;
+  font-weight: 800;
   margin: 0 0 10px 0;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-  background: linear-gradient(45deg, #3498db, #e74c3c);
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  letter-spacing: -0.02em;
 }
 
 .game-subtitle {
-  font-size: 1.5rem;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 400;
   margin: 0 0 40px 0;
   opacity: 0.9;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.02em;
 }
 
-.loading-progress {
+.loading-animation-container {
   margin: 30px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
 }
 
-.progress-bar {
-  width: 100%;
-  height: 8px;
-  background-color: rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 15px;
+/* Custom Loader Animation */
+.loader {
+  width: 120px;
+  height: 20px;
+  border-radius: 20px;
+  background: linear-gradient(orange 0 0) 0/0% no-repeat lightblue;
+  animation: l2 2s infinite steps(10);
 }
 
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #3498db, #2ecc71);
-  border-radius: 4px;
-  transition: width 0.3s ease;
-  box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+@keyframes l2 {
+  100% {
+    background-size: 110%;
+  }
+}
+
+.loading-percentage {
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  margin-bottom: 8px;
+}
+
+.loading-status {
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.02em;
 }
 
 .loading-text {
@@ -251,9 +276,14 @@ onUnmounted(() => {
 }
 
 .kinyarwanda {
-  font-size: 14px;
-  opacity: 0.8;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 400;
+  opacity: 0.7;
   margin-top: 5px;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.01em;
 }
 
 .detailed-loading {

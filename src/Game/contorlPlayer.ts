@@ -226,23 +226,33 @@ export class ControlPlayer extends EventEmitter {
     }
 
     private canJump(): boolean {
-        return this.gameStart && 
-               this.status !== playerStatus.DIE &&
-               this.status !== playerStatus.JUMP && 
-               this.status !== playerStatus.FALL && 
-               this.downCollide;
+        const canJump = this.gameStart && 
+                       this.status !== playerStatus.DIE &&
+                       this.downCollide && 
+                       !this.isJumping;
+        
+        console.log('Can jump?', canJump, {
+            gameStart: this.gameStart,
+            status: this.status,
+            downCollide: this.downCollide,
+            isJumping: this.isJumping,
+            positionY: this.model.position.y
+        }); // Debug log
+        
+        return canJump;
     }
 
     private jump() {
         if (!this.canJump()) return;
         
+        console.log('Jump initiated!'); // Debug log
+        
         this.key = 'jump';
-        this.downCollide = false;
+        this.downCollide = false; // Player leaves ground
         this.isJumping = true;
-        setTimeout(() => {
-            this.isJumping = false;
-        }, 50);
-        this.fallingSpeed += this.jumpHight * 0.1;
+        
+        // Set strong upward velocity
+        this.fallingSpeed = 8.0; // Simple upward velocity
     }
 
     private canSlide(): boolean {
@@ -551,23 +561,20 @@ handleLeftRightMove() {
         if (this.status === playerStatus.DIE) {
             this.status = playerStatus.DIE;
         }
-        else if (this.fallingSpeed > 0) {
+        else if (this.isJumping && this.fallingSpeed > 0) {
             this.status = playerStatus.JUMP;
         }
-        else if (this.fallingSpeed < 0 && this.key !== 's') {
+        else if (!this.downCollide && this.fallingSpeed < 0) {
             this.status = playerStatus.FALL;
         }
         else if (this.roll) {
             this.status = playerStatus.ROLL;
         }
-        else if (this.key === 'p') {
-            this.status = playerStatus.RUN;
-        }
-        else if (!this.roll && this.fallingSpeed === 0 && !this.runlookback) {
-            this.status = playerStatus.RUN;
-        }
         else if (this.runlookback) {
             this.status = playerStatus.RUNLOOKBACK;
+        }
+        else if (this.downCollide && this.fallingSpeed === 0) {
+            this.status = playerStatus.RUN;
         }
         // Don't execute repeated animations
         if (this.status === this.lastAnimation) {
@@ -669,13 +676,36 @@ handleLeftRightMove() {
         if (this.gameStatus === GAME_STATUS.START) {
             this.game.emit('gameData', {score: this.score += 20, coin: this.coin, mistake: this.smallMistake});
         }
-        // 重力或者跳跃
+        // Simple jumping physics
         if (this.isJumping || !this.downCollide) {
-            const ratio = 0.1;
-            this.fallingSpeed += -9.2 * ratio * delta;
-            this.model.position.add(new THREE.Vector3(0, this.fallingSpeed, 0));
-        }
-        else {
+            // Apply gravity - this will always pull the player down
+            this.fallingSpeed -= 20.0 * delta; // Gravity acceleration
+            
+            // Update Y position based on falling speed
+            this.model.position.y += this.fallingSpeed * delta;
+            
+            // Debug logging
+            if (this.isJumping) {
+                console.log('Jumping physics:', {
+                    positionY: this.model.position.y,
+                    fallingSpeed: this.fallingSpeed,
+                    delta: delta,
+                    isJumping: this.isJumping,
+                    downCollide: this.downCollide
+                });
+            }
+            
+            // Check if player has hit the ground
+            if (this.model.position.y <= 0) {
+                console.log('Player landed!');
+                this.model.position.y = 0; // Keep on ground
+                this.fallingSpeed = 0; // Stop all vertical movement
+                this.downCollide = true; // Player is grounded
+                this.isJumping = false; // Jump complete
+            }
+        } else {
+            // Player is on ground - keep them there
+            this.model.position.y = 0;
             this.fallingSpeed = 0;
         }
     }
