@@ -132,7 +132,7 @@ const showResult = ref(false);
 const isCorrect = ref(false);
 const pointsEarned = ref(0);
 const timeLeft = ref(30);
-const timerInterval = ref<NodeJS.Timeout | null>(null);
+const timerInterval = ref<number | null>(null);
 
 // Computed properties
 const currentSubject = computed(() => props.subject);

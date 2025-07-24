@@ -158,4 +158,23 @@ export default class Player extends EventEmitter {
         }
 
     }
+
+    restartGame() {
+        console.log('Player restart initiated');
+        // Reset player position
+        if (this.playerScene) {
+            this.playerScene.position.set(0, 20, 5);
+        }
+        
+        // Reset collision state
+        this.collision = false;
+        
+        // Reset control player state
+        if (this.controlPlayer) {
+            this.controlPlayer.restartGame();
+        }
+        
+        // Emit restart event
+        this.emit('playerRestarted');
+    }
 }
